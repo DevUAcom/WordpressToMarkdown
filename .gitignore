@@ -400,4 +400,5 @@ FodyWeavers.xsd
 # JetBrains Rider
 *.sln.iml
 
-appsettings.json # Don't exposure local settings to the repository
+# Don't exposure local settings to the repository
+appsettings.json 
