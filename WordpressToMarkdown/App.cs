@@ -1,11 +1,34 @@
-﻿namespace WordpressToMarkdown;
+﻿using WordpressToMarkdown.Converters;
+using WordpressToMarkdown.DataProviders;
+using WordpressToMarkdown.Templates;
 
-public class App
+namespace WordpressToMarkdown;
+
+public class App(IDataProvider dataProvider, AppSettings appSettings)
 {
-    public Task Run()
+    public async Task Run(CancellationToken cancellationToken)
     {
-        Console.WriteLine("Run!");
-        
-        return Task.CompletedTask;
+        var posts = dataProvider.GetPosts();
+
+        int postCount = 0;
+        await Parallel.ForEachAsync(posts, cancellationToken, async (post, ct) =>
+        {
+            await post
+                .ConvertCodeBlock()
+                .ConvertSingleLineBreaks()
+                .ConvertDialogs()
+                .RemoveMore()
+                
+                .ConvertToMarkdown()
+                .AddAstroHeader(appSettings.FeatureImagesLocation)
+                
+                .ConvertToc()
+                .ConvertBoxes()
+                
+                .SaveTo(appSettings.OutputDirectory, ct)
+            ;
+            postCount++;
+        });
+        Console.WriteLine($"{postCount} posts converted.");
     }
 }

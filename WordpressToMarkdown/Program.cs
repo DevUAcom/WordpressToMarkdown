@@ -4,7 +4,7 @@ using Microsoft.Extensions.Hosting;
 using WordpressToMarkdown;
 
 var host = Host.CreateDefaultBuilder(args)
-    .ConfigureAppConfiguration((context, config) =>
+    .ConfigureAppConfiguration((_, config) =>
     {
         config.SetBasePath(Directory.GetCurrentDirectory())
             .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
@@ -20,11 +20,28 @@ var host = Host.CreateDefaultBuilder(args)
 
         // Register services
         services.UseApp();
+        services.UseDb(
+            context.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException(),
+            appSettings.Prefix
+        );
     })
     .Build();
 
+var cts = new CancellationTokenSource();
+Console.CancelKeyPress += (s, e) =>
+{
+    Console.WriteLine("Canceling...");
+    cts.Cancel();
+    e.Cancel = true;
+};
+
 var app = host.Services.GetRequiredService<App>();
-await app.Run();
 
-Console.WriteLine("Done!");
-
+try
+{
+    await app.Run(cts.Token);
+}
+catch (OperationCanceledException)
+{
+    Console.WriteLine("Canceled!");
+}
